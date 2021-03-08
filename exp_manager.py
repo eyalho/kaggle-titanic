@@ -54,10 +54,10 @@ def get_pipe_name(pipe):
     return "--".join(pipe.steps[i][0] for i in range(len(pipe.steps)))
 
 
-def run_full_experiment(pipe, repeat=3):
+def run_full_experiment(pipe, repeat=1):
     for i in range(repeat):
         print("-"*20)
-        print(f"run experiment {get_pipe_name(pipe)}")
+        print(f"run experiment {get_pipe_name(pipe)}: {pipe[0].__doc__}")
 
         df_train, df_test, df_anno_example = load_data()
         X_train, X_test, y_train, y_test = train_test_split(df_train.copy(), df_train.copy().Survived)
