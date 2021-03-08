@@ -38,13 +38,8 @@ clf = RandomForestClassifier()
 clf.fit(X_train, y_train)
 y_predicted = clf.predict(X_test)
 
-print("f1_score macro", f1_score(y_test, y_predicted, average='macro'))
-print("f1_score micro", f1_score(y_test, y_predicted, average='micro'))
-print("f1_score weighted", f1_score(y_test, y_predicted, average='weighted'))
+print("f1_score macro", f1_score(y_test, y_predicted, average='binary'))
 print("accuracy_score", accuracy_score(y_test, y_predicted))
-
-
-
 
 # submission
 X = df_test
@@ -57,5 +52,5 @@ y_submission = clf.predict(X)
 df = pd.DataFrame({"PassengerId": X['PassengerId'], "Survived": y_submission}, columns=['PassengerId', 'Survived'])
 df.to_csv("1_baseline.csv", index=False)
 
-#kaggle competitions submit -c titanic -f 1_baseline.csv -m "1_baseline"
+# kaggle competitions submit -c titanic -f 1_baseline.csv -m "1_baseline"
 # On kaggel: 0.77511 score
