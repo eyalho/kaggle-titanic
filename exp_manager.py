@@ -2,7 +2,10 @@ import csv
 from collections import OrderedDict
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
+import seaborn as sns
+from matplotlib import pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.model_selection import train_test_split
@@ -30,7 +33,7 @@ def evaluate_model(X, pipe, y_true):
     print("f1_score macro", f1_score(y_true, y_predicted, average='binary'))
     print("accuracy_score", accuracy_score(y_true, y_predicted))
     ordered_fieldnames = OrderedDict([('pipe_name', None), ('f1_score', None), ('accuracy_score', None)])
-    with open(LOG_FILE_PATH, "a") as f:
+    with open(LOG_FILE_PATH, "w") as f:
         dw = csv.DictWriter(f, fieldnames=ordered_fieldnames)
         if f.tell() == 0:
             dw.writeheader()
@@ -54,25 +57,44 @@ def get_pipe_name(pipe):
     return "--".join(pipe.steps[i][0] for i in range(len(pipe.steps)))
 
 
+def print_feature_importance(pipe, X_train):
+    clf = pipe[-1][-1]
+    feature_importance = np.array(clf.feature_importances_)
+    feature_names = np.array(pipe[0].columns_name)
+    fi_df = pd.DataFrame({'feature_names': feature_names, 'feature_importance': feature_importance})
+    fi_df.sort_values(by=['feature_importance'], ascending=False, inplace=True)
+    fi_df = fi_df[fi_df.feature_importance > 0.05]
+    plt.figure(figsize=(5, 4))
+    sns.barplot(y=fi_df['feature_importance'], x=fi_df['feature_names'])
+    plt.title(f"Feature Importance: {get_pipe_name(pipe)}")
+    plt.xlabel('Feature Names')
+    plt.ylabel('Feature Importance')
+    plt.show()
+
+
 def run_full_experiment(pipe, repeat=1):
     for i in range(repeat):
-        print("-"*20)
+        print("-" * 20)
         print(f"run experiment {get_pipe_name(pipe)}: {pipe[0].__doc__}")
 
         df_train, df_test, df_anno_example = load_data()
-        X_train, X_test, y_train, y_test = train_test_split(df_train.copy(), df_train.copy().Survived)
+        X_train, X_test, y_train, y_test = split_to_train_test(df_train.copy(), df_train.copy().Survived)
 
         pipe.fit(X_train, y_train)
         evaluate_model(X_test, pipe, y_test)
+
+        print_feature_importance(pipe, X_train)
 
         create_submission_file(df_test, pipe)
 
 
 # kaggle competitions submit -c titanic -f %d_baseline.csv -m "%d_baseline"
 if __name__ == "__main__":
-    run_full_experiment(Pipeline([('baseline_v1', BaselineV1Transformer()), ('RF', RandomForestClassifier())]))
-    run_full_experiment(Pipeline([('baseline_v2', BaselineV2Transformer()), ('RF', RandomForestClassifier())]))
-    run_full_experiment(Pipeline([('baseline_v3', BaselineV3Transformer()), ('RF', RandomForestClassifier())]))
-    run_full_experiment(Pipeline([('baseline_v4', BaselineV4Transformer()), ('RF', RandomForestClassifier())]))
-
-
+    run_full_experiment(
+        Pipeline([('baseline_v1', BaselineV1Transformer()), ('RF', RandomForestClassifier(random_state=42))]))
+    run_full_experiment(
+        Pipeline([('baseline_v2', BaselineV2Transformer()), ('RF', RandomForestClassifier(random_state=42))]))
+    run_full_experiment(
+        Pipeline([('baseline_v3', BaselineV3Transformer()), ('RF', RandomForestClassifier(random_state=42))]))
+    run_full_experiment(
+        Pipeline([('baseline_v4', BaselineV4Transformer()), ('RF', RandomForestClassifier(random_state=42))]))
